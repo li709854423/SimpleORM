@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.ToString;
 import lombok.val;
+import org.w3c.dom.Node;
 
 import java.io.File;
 import java.io.IOException;
@@ -57,8 +58,10 @@ public class MavenLibrary extends Library {
     public List<Library> getSublist() {
         if (sublist == null) {
             val xml = new File(getFile().getParentFile(), getFile().getName() + ".pom");
-            val pom = XMLHelper.getDocumentBy(xml).getFirstChild();
-
+            Node pom = XMLHelper.getDocumentBy(xml).getFirstChild();
+            while (!pom.getNodeName().equals("project")){
+                pom=pom.getNextSibling();
+            }
             val all = XMLHelper.getElementBy(pom, "dependencies");
             if (all == null) return (sublist = ImmutableList.of());
             val p = XMLHelper.getElementBy(pom, "properties");
@@ -95,7 +98,7 @@ public class MavenLibrary extends Library {
             throw new IOException("mkdir");
         }
 
-        loadFile(ImmutableSet.of(repository, Repository.CENTRAL.repository, Repository.I7MC.repository).iterator());
+        loadFile(ImmutableSet.of(repository, Repository.CENTRAL.repository).iterator());
     }
 
     void loadFile(Iterator<String> repo) throws IOException {
@@ -139,7 +142,7 @@ public class MavenLibrary extends Library {
                     MD5.update(buf);
                     buf.compact();
                 }
-                return Files.newBufferedReader(check.toPath()).readLine().equals(MD5.digest());
+                return Files.newBufferedReader(check.toPath()).readLine().split(" ")[0].equals(MD5.digest());
             }
         }
         return false;

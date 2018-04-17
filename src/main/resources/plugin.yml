@@ -1,4 +1,4 @@
-name: SimpleORM
+id: SimpleORM
 version: ${project.version}
 main: com.mengcraft.simpleorm.ORM
 author: mengcraft.com

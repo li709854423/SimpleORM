@@ -60,7 +60,7 @@ public class MyPlugin extend JavaPlugin {
     public void function() {
         MyClass my = getDatabase.find(MyClass.class)
                                 .where()
-                                .eq("name", "zmy")
+                                .eq("id", "zmy")
                                 .findUnique();
         System.out.print(my.getName());
         ...
@@ -69,14 +69,14 @@ public class MyPlugin extend JavaPlugin {
 Code your entity class like this. See More [Example](https://github.com/ebean-orm/avaje-ebeanorm-examples/tree/master/a-basic/src/main/java/org/example/domain).
 ```java
 @Entity
-@Table(name = "o_table")
+@Table(id = "o_table")
 public class MyClass {
     
     @Id
     private int id;
     
     @Column
-    private String name;
+    private String id;
     
     // Put getter and setter.
     ...

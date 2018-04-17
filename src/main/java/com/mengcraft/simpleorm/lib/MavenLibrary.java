@@ -58,6 +58,7 @@ public class MavenLibrary extends Library {
     public List<Library> getSublist() {
         if (sublist == null) {
             val xml = new File(getFile().getParentFile(), getFile().getName() + ".pom");
+            System.out.println("加载"+getFile().getName() + ".pom");
             Node pom = XMLHelper.getDocumentBy(xml).getFirstChild();
             while (!pom.getNodeName().equals("project")){
                 pom=pom.getNextSibling();
@@ -68,24 +69,38 @@ public class MavenLibrary extends Library {
             Builder<Library> b = ImmutableList.builder();
 
             val list = XMLHelper.getElementListBy(all, "dependency");
+            String groupId=null;
+            String artifactId=null;
             for (val depend : list) {
-                val scope = XMLHelper.getElementValue(depend, "scope");
-                if (scope == null || scope.equals("compile")) {
-                    String version = XMLHelper.getElementValue(depend, "version");
-                    if (version == null) throw new NullPointerException();
 
+                val scope = XMLHelper.getElementValue(depend, "scope");
+                //optional=true并不需要加载该依赖
+                if (scope == null || scope.equals("compile")) {
+                val optional = XMLHelper.getElementValue(depend, "optional");
+                    groupId = XMLHelper.getElementValue(depend, "groupId");
+                    artifactId = XMLHelper.getElementValue(depend, "artifactId");
+                    String version = XMLHelper.getElementValue(depend, "version");
+                    System.out.println("依赖"+groupId+":"+artifactId+":"+version+",optional:"+optional);
+                    if (optional!=null&&optional.equals("true")){
+                        continue;
+                    }
+                    if (version == null){
+                        version=this.version;
+                        System.out.println("加载依赖库没有版本号，套用当前版本");
+                    }
                     // TODO Request any placeholder support
                     if (version.startsWith("${")) {
                         val sub = version.substring(2, version.length() - 1);
                         version = XMLHelper.getElementValue(p, sub);
                     }
                     b.add(new MavenLibrary(repository,
-                            XMLHelper.getElementValue(depend, "groupId"),
-                            XMLHelper.getElementValue(depend, "artifactId"),
+                            groupId,
+                            artifactId,
                             version,
                             null
                     ));
                 }
+
             }
             sublist = b.build();
         }
@@ -102,6 +117,11 @@ public class MavenLibrary extends Library {
     }
 
     void loadFile(Iterator<String> repo) throws IOException {
+        //http://101.110.118.29/central.maven.org/maven2/xerces/xercesImpl/2.6.2/xercesImpl-2.6.2.jar
+        String artifact=this.artifact;
+        if (artifact.equals("xerces-impl")){
+            artifact="xercesImpl";
+        }
         val url = repo.next()
                 + '/'
                 + group.replace('.', '/')
@@ -162,6 +182,7 @@ public class MavenLibrary extends Library {
     public enum Repository {
 
         CENTRAL("http://central.maven.org/maven2"),
+        ALIYUN("http://maven.aliyun.com/nexus"),
         I7MC("http://ci.mengcraft.com:8080/plugin/repository/everything");
 
         final String repository;

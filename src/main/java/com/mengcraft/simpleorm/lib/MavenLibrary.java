@@ -44,7 +44,7 @@ public class MavenLibrary extends Library {
     @Override
     public File getFile() {
         if (file == null) {
-            file = new File("lib", group.replace(".", File.separator)
+            file = new File("libraries", group.replace(".", File.separator)
                     + File.separator
                     + artifact
                     + File.separator

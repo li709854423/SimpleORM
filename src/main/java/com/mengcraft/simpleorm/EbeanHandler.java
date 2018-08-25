@@ -12,9 +12,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.val;
-import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.PluginDescriptionFile;
-import org.bukkit.plugin.java.JavaPlugin;
+import org.spongepowered.api.plugin.PluginContainer;
 
 import java.sql.Connection;
 import java.util.Collection;
@@ -23,13 +21,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
-import java.util.logging.Level;
 
 @EqualsAndHashCode(of = "id")
 public class EbeanHandler {
 
     private final Set<Class> mapping = new HashSet<>();
-    private final JavaPlugin plugin;
+    private final PluginContainer plugin;
     private final boolean managed;
     private final UUID id = UUID.randomUUID();
 
@@ -47,13 +44,13 @@ public class EbeanHandler {
     private IsolationLevel isolationLevel;
     private EbeanServer server;
 
-    EbeanHandler(JavaPlugin plugin, boolean managed) {
+    EbeanHandler(PluginContainer plugin, boolean managed) {
         name = plugin.getName() + '@' + id;
         this.plugin = plugin;
         this.managed = managed;
     }
 
-    public EbeanHandler(JavaPlugin plugin) {
+    public EbeanHandler(PluginContainer plugin) {
         this(plugin, false);
     }
 
@@ -89,22 +86,6 @@ public class EbeanHandler {
         return getServer().find(in, id);
     }
 
-    public void reflect() {
-        validInitialized();
-        if (!managed) {
-            plugin.getLogger().warning("自定义连接不能注入到端");
-            return;
-        }
-        try {
-            PluginDescriptionFile desc = plugin.getDescription();
-            if (!((boolean) desc.getClass().getMethod("isDatabaseEnabled").invoke(desc))) {
-                desc.getClass().getMethod("setDatabaseEnabled", boolean.class).invoke(desc, true);
-            }
-            Reflect.replace(plugin, server);
-        } catch (Exception e) {
-            plugin.getLogger().log(Level.WARNING, "注入失败了，1.12服务端不再支持注入方式|" + e.toString());
-        }
-    }
 
     public void uninstall() {
         validInitialized();
@@ -274,7 +255,7 @@ public class EbeanHandler {
         if (isNotInitialized()) throw new IllegalStateException("Not initialized!");
     }
 
-    public Plugin getPlugin() {
+    public PluginContainer getPlugin() {
         return plugin;
     }
 
@@ -342,7 +323,7 @@ public class EbeanHandler {
         return this.isolationLevel;
     }
 
-    public static EbeanHandler build(@NonNull JavaPlugin plugin, @NonNull Map<String, String> map) {
+    public static EbeanHandler build(@NonNull PluginContainer plugin, @NonNull Map<String, String> map) {
         val out = new EbeanHandler(plugin);
         out.setUrl(map.get("url"));
         out.setUser(map.getOrDefault("userName", map.get("username")));

@@ -2,7 +2,7 @@ package com.mengcraft.simpleorm.lib;
 
 import lombok.SneakyThrows;
 import lombok.val;
-import org.bukkit.plugin.java.JavaPlugin;
+import org.spongepowered.api.plugin.PluginContainer;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -16,8 +16,17 @@ import static com.mengcraft.simpleorm.lib.RefHelper.invoke;
  */
 public class LibraryLoader {
 
+    public static void loadLibrary(PluginContainer plugin,String className,String maven) {
+        try {
+            Class.forName(className);
+        } catch (ClassNotFoundException var2) {
+            LibraryLoader.load(plugin, MavenLibrary.of(maven));
+        }
+        plugin.getLogger().info(maven+" lib 加载完毕!");
+    }
+
     @SneakyThrows
-    public static void load(JavaPlugin plugin, Library library) {
+    public static void load(PluginContainer plugin, Library library) {
         if (library.present()) {
             plugin.getLogger().info("Library " + library + " present");
         } else {
@@ -30,14 +39,14 @@ public class LibraryLoader {
             }
 
             val lib = library.getFile();
-            invoke(plugin.getClass().getClassLoader(), "addURL", lib.toURI().toURL());
+            invoke(plugin.getInstance().get().getClass().getClassLoader(), "addURL", lib.toURI().toURL());
 
             plugin.getLogger().info("Load library " + lib + " done");
         }
     }
 
     @SneakyThrows
-    static void init(JavaPlugin plugin, Library library) {
+    static void init(PluginContainer plugin, Library library) {
         plugin.getLogger().info("Loading library " + library);
 
         val run = CompletableFuture.runAsync(() -> {

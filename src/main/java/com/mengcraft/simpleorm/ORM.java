@@ -1,103 +1,48 @@
 package com.mengcraft.simpleorm;
 
+import com.google.inject.Inject;
 import com.mengcraft.simpleorm.lib.LibraryLoader;
 import com.mengcraft.simpleorm.lib.MavenLibrary;
-import lombok.SneakyThrows;
-import lombok.val;
-import org.bukkit.ChatColor;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandSender;
-import org.bukkit.plugin.ServicePriority;
-import org.bukkit.plugin.java.JavaPlugin;
+import ninja.leaping.configurate.commented.CommentedConfigurationNode;
+import ninja.leaping.configurate.loader.ConfigurationLoader;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.spongepowered.api.Sponge;
+import org.spongepowered.api.config.DefaultConfig;
+import org.spongepowered.api.event.Listener;
+import org.spongepowered.api.event.game.state.GamePreInitializationEvent;
+import org.spongepowered.api.plugin.Plugin;
+import org.spongepowered.api.plugin.PluginContainer;
 
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.Map;
+import java.io.IOException;
+import java.util.Optional;
 
-public class ORM extends JavaPlugin {
+@Plugin(
+        id = "orm",
+        name = "ORM",
+        version = "1.0.0",
+        authors = "mengcraft.com"
+)
+public class ORM {
 
-    @Override
-    public void onLoad() {
-        loadLibrary(this);
-        saveDefaultConfig();
+    public static ConfigurationLoader<CommentedConfigurationNode> defaultConfig;
 
-        EbeanManager.url = getConfig().getString("dataSource.url", "jdbc:mysql://localhost/db");
-        EbeanManager.user = getConfig().getString("dataSource.user", "root");
-        EbeanManager.password = getConfig().getString("dataSource.password", "wowsuchpassword");
+    @Listener
+    public void gamePreInitializationEvent(GamePreInitializationEvent event) throws IOException {
+        Optional<PluginContainer> pluginContainer = Sponge.getPluginManager().fromInstance(this);
+        LibraryLoader.loadLibrary(pluginContainer.get(),"com.avaje.ebean.EbeanServer","org.avaje:ebean:2.8.1");
+        @NonNull CommentedConfigurationNode node = defaultConfig.load();
+        EbeanManager.url = node.getNode("dataSource","url").getString("jdbc:mysql://localhost/db");
+        EbeanManager.user =  node.getNode("dataSource","user").getString( "root");
+        EbeanManager.password = node.getNode("dataSource","password").getString( "root");
 
-        getServer().getServicesManager().register(EbeanManager.class,
-                EbeanManager.DEFAULT,
-                this,
-                ServicePriority.Normal);
+        Sponge.getServiceManager().setProvider(this,EbeanManager.class,
+                EbeanManager.DEFAULT);
+        EbeanHandler handler = EbeanManager.DEFAULT.getHandler(pluginContainer.get());
+
     }
 
-    public static void loadLibrary(JavaPlugin plugin) {
-        try {
-            Class.forName("com.avaje.ebean.EbeanServer");
-        } catch (ClassNotFoundException e) {
-            LibraryLoader.load(plugin, MavenLibrary.of("org.avaje:ebean:2.8.1"));
-        }
-        plugin.getLogger().info("ORM lib load okay!");
+    @Inject
+    public void setDefaultConfig( @DefaultConfig(sharedRoot = false) ConfigurationLoader<CommentedConfigurationNode> defaultConfig) {
+        this.defaultConfig = defaultConfig;
     }
-
-    @Override
-    @SneakyThrows
-    public void onEnable() {
-        getCommand("simpleorm").setExecutor(this);
-        new MetricsLite(this).start();
-    }
-
-    public boolean onCommand(CommandSender who, Command command, String label, String[] input) {
-        if (input.length < 1) {
-            for (val executor : SubExecutor.values()) {
-                who.sendMessage('/' + label + ' ' + executor.usage);
-            }
-        } else {
-            try {
-                Iterator<String> itr = Arrays.asList(input).iterator();
-                SubExecutor.valueOf(itr.next().toUpperCase()).exec(who, itr);
-                return true;
-            } catch (Exception exc) {
-                who.sendMessage(ChatColor.RED + exc.toString());
-            }
-        }
-        return false;
-    }
-
-    enum SubExecutor {
-
-        LIST("list") {
-            void exec(CommandSender who, Iterator<String> itr) {
-                Map<String, EbeanHandler> all = EbeanManager.DEFAULT.map;
-                if (!all.isEmpty()) {
-                    all.forEach((key, handler) -> who.sendMessage("[" + key + "] -> " + handler));
-                }
-            }
-        },
-
-        REMOVE("remove <plugin_name>") {
-            void exec(CommandSender who, Iterator<String> itr) {
-                EbeanHandler remove = EbeanManager.DEFAULT.map.remove(itr.next());
-                who.sendMessage(remove == null ? "handle not found" : "okay");
-            }
-        },
-
-        REMOVE_ALL("remove_all") {
-            void exec(CommandSender who, Iterator<String> itr) {
-                EbeanManager.DEFAULT.map.clear();
-                who.sendMessage("okay");
-            }
-        };
-
-        private final String usage;
-
-        SubExecutor(String usage) {
-            this.usage = usage;
-        }
-
-        void exec(CommandSender who, Iterator<String> itr) {
-            throw new AbstractMethodError("exec");
-        }
-    }
-
 }

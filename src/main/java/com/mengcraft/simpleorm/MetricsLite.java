@@ -278,9 +278,9 @@ public class MetricsLite {
     }
 
     /**
-     * Gets the online player (backwards compatibility)
+     * Gets the online damager (backwards compatibility)
      *
-     * @return online player amount
+     * @return online damager amount
      */
     private int getOnlinePlayers() {
         try {

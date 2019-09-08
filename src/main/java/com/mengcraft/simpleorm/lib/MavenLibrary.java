@@ -58,24 +58,23 @@ public class MavenLibrary extends Library {
     public List<Library> getSublist() {
         if (sublist == null) {
             val xml = new File(getFile().getParentFile(), getFile().getName() + ".pom");
-            System.out.println("加载"+getFile().getName() + ".pom");
-            Node pom = XMLHelper.getDocumentBy(xml).getFirstChild();
+            Node pom = XMLHelper.getDocument(xml).getFirstChild();
             while (!pom.getNodeName().equals("project")){
                 pom=pom.getNextSibling();
             }
-            val all = XMLHelper.getElementBy(pom, "dependencies");
+            val all = XMLHelper.getElement(pom, "dependencies");
             if (all == null) return (sublist = ImmutableList.of());
-            val p = XMLHelper.getElementBy(pom, "properties");
+            val p = XMLHelper.getElement(pom, "properties");
             Builder<Library> b = ImmutableList.builder();
 
-            val list = XMLHelper.getElementListBy(all, "dependency");
+            val list = XMLHelper.getElementList(all, "dependency");
             String groupId=null;
             String artifactId=null;
             for (val depend : list) {
 
                 val scope = XMLHelper.getElementValue(depend, "scope");
                 //optional=true并不需要加载该依赖
-                if (scope == null || scope.equals("compile")) {
+                if (scope == null ) {
                 val optional = XMLHelper.getElementValue(depend, "optional");
                     groupId = XMLHelper.getElementValue(depend, "groupId");
                     artifactId = XMLHelper.getElementValue(depend, "artifactId");
@@ -113,7 +112,7 @@ public class MavenLibrary extends Library {
             throw new IOException("mkdir");
         }
 
-        loadFile(ImmutableSet.of(repository, Repository.CENTRAL.repository).iterator());
+        loadFile(ImmutableSet.of(repository, Repository.CENTRAL.repository,Repository.ALIYUN.repository).iterator());
     }
 
     void loadFile(Iterator<String> repo) throws IOException {
